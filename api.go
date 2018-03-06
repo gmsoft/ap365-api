@@ -1,4 +1,4 @@
-  package main
+package main
 
 import (
     "encoding/json"
@@ -6,14 +6,14 @@ import (
     "log"
     "net/http"
 
-     "goji.io"
+    "goji.io"
     "goji.io/pat"
     "gopkg.in/mgo.v2"
     "gopkg.in/mgo.v2/bson"
 )
 
 const database string = "base"
-const collection string = "cli_106"
+const collection string = "articles"
 
 func ErrorWithJSON(w http.ResponseWriter, message string, code int) {  
     w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -42,8 +42,7 @@ type Article struct {
 func main() {
 
     //MONGO DB
-    //session, err := mgo.Dial("localhost")
-    session, err := mgo.Dial("192.168.10.201")
+    session, err := mgo.Dial("localhost")    
     if err != nil {
         panic(err)
     }
@@ -56,8 +55,7 @@ func main() {
     //Articulos
     mux.HandleFunc(pat.Get("/articles"), allArticles(session))
     mux.HandleFunc(pat.Get("/articles/:articulo"), articleByCodigo(session))
-	mux.HandleFunc(pat.Get("/articles/rubro/:rubro"), articlesByRubro(session))
-	mux.HandleFunc(pat.Post("/articles"), addArticle(session))
+    mux.HandleFunc(pat.Post("/articles"), addArticle(session))
     mux.HandleFunc(pat.Put("/articles/:articulo"), updateArticle(session))
     mux.HandleFunc(pat.Delete("/articles/:articulo"), deleteArticle(session))
     //Web Server
@@ -120,7 +118,7 @@ func articleByCodigo(s *mgo.Session) func(w http.ResponseWriter, r *http.Request
         err := c.Find(bson.M{"articulo": articulo}).One(&article)
         if err != nil {
             ErrorWithJSON(w, "Database error", http.StatusInternalServerError)
-            log.Println("Failed find book: ", err)
+            log.Println("Failed find article: ", err)
             return
         }
 
@@ -135,44 +133,6 @@ func articleByCodigo(s *mgo.Session) func(w http.ResponseWriter, r *http.Request
         }
 
         ResponseWithJSON(w, respBody, http.StatusOK)
-    }
-}
-
-func articlesByRubro(s *mgo.Session) func(w http.ResponseWriter, r *http.Request) {  
-    return func(w http.ResponseWriter, r *http.Request) {
-        session := s.Copy()
-        defer session.Close()
-
-        rubro := pat.Param(r, "rubro")
-
-        c := session.DB(database).C(collection)
-
-        article := Article{}
-        find := c.Find(bson.M{"rubro": rubro})
-        items := find.Iter()
-        for items.Next(&article) {
-            fmt.Println(article.Articulo)
-        }
-
-        /*
-        if err != nil {
-            ErrorWithJSON(w, "Database error", http.StatusInternalServerError)
-            log.Println("Failed find book: ", err)
-            return
-        }
-
-        if article.Articulo == "" {
-            ErrorWithJSON(w, "Article not found", http.StatusNotFound)
-            return
-        }
-
-        respBody, err := json.MarshalIndent(article, "", "  ")
-        if err != nil {
-            log.Fatal(err)
-        }
-
-        ResponseWithJSON(w, respBody, http.StatusOK)
-        */
     }
 }
 
